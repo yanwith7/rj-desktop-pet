@@ -1,0 +1,21 @@
+{
+  "id": "rj",
+  "displayName": "可爱帅气窝头 RJ",
+  "description": "白色毛绒窝头 RJ，黑色脸部面板、薄荷色眼睛、粉色耳朵和橙色围巾。",
+  "spriteSheet": "assets/pets/rj/spritesheet.webp",
+  "cellWidth": 192,
+  "cellHeight": 208,
+  "states": {
+    "idle": { "row": 0, "frames": 6, "fps": 6, "loop": true },
+    "running-right": { "row": 1, "frames": 8, "fps": 10, "loop": true },
+    "running-left": { "row": 2, "frames": 8, "fps": 10, "loop": true },
+    "waving": { "row": 3, "frames": 4, "fps": 7, "loop": true },
+    "jumping": { "row": 4, "frames": 5, "fps": 8, "loop": false },
+    "waiting": { "row": 6, "frames": 6, "fps": 6, "loop": true },
+    "running": { "row": 7, "frames": 6, "fps": 8, "loop": true }
+  },
+  "lookRows": {
+    "up-to-right": 9,
+    "down-to-left": 10
+  }
+}

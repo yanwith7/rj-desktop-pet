@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>窝头 RJ 桌面宠物</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main id="pet-shell" aria-label="窝头 RJ 桌面宠物">
+      <div id="pet-stage" aria-label="可拖动的窝头 RJ">
+        <canvas id="pet-canvas" width="192" height="208" aria-label="窝头 RJ"></canvas>
+      </div>
+      <button id="status-bubble" title="双击修改文字" aria-label="主人，今天也请加油吧！，双击修改">
+        <span id="bubble-text">主人，今天也请加油吧！</span>
+      </button>
+      <div id="health-wrap" aria-label="RJ 活力值">
+        <div id="health-track"><div id="health-fill"></div></div>
+      </div>
+      <section id="pet-menu" class="hidden" aria-label="宠物菜单">
+        <div class="menu-title"><span>RJ MENU</span><button id="close-menu" class="menu-close" aria-label="关闭面板">×</button></div>
+        <div class="menu-section-label">动作</div>
+        <div class="action-grid">
+          <button data-state="waiting">工作</button>
+          <button data-state="jumping">跳跃</button>
+          <button data-state="spinning">转圈</button>
+          <button id="walk-right">向右走</button>
+          <button id="walk-left">向左走</button>
+          <button id="yahou-sound">呀吼</button>
+        </div>
+        <div class="menu-section-label">设置</div>
+        <div class="settings-grid">
+          <label class="range-label">大小 <input id="size-range" type="range" min="72" max="300" step="1" /></label>
+          <button id="reset-size">恢复默认大小</button>
+          <label class="toggle"><input id="health-toggle" type="checkbox" checked /> 显示血条</label>
+          <label class="toggle"><input id="bubble-toggle" type="checkbox" checked /> 显示气泡</label>
+          <label class="toggle"><input id="autostart-toggle" type="checkbox" /> 开机自启</label>
+          <button id="hide-pet">暂时隐藏</button>
+          <button id="quit-pet" class="danger">退出宠物</button>
+        </div>
+      </section>
+      <section id="bubble-editor" class="is-hidden" aria-label="编辑气泡文字">
+        <div class="editor-title">气泡文字 <span id="bubble-count">0/98 · 1/7行</span></div>
+        <textarea id="bubble-input" maxlength="104" rows="7" aria-label="气泡文字，最多7行、每行14字"></textarea>
+        <div class="editor-actions"><button id="bubble-save" type="button">保存</button><button id="bubble-cancel" type="button">取消</button></div>
+      </section>
+    </main>
+    <script src="renderer.js"></script>
+  </body>
+</html>

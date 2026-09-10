@@ -1,0 +1,9 @@
+{
+  "defaultPet": "rj",
+  "pets": [
+    {
+      "id": "rj",
+      "config": "pets/rj/rj.json"
+    }
+  ]
+}
