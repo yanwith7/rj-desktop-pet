@@ -5,6 +5,7 @@ const fs = require('node:fs');
 let mainWindow;
 let tray;
 let isQuitting = false;
+let trayLocale = 'zh';
 const windowSize = { width: 230, height: 210 };
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
@@ -69,26 +70,31 @@ function hidePet() {
 }
 
 function createTray() {
-  const iconPath = path.join(__dirname, '..', 'assets', 'icons', 'rj.png');
-  const icon = nativeImage.createFromPath(iconPath).resize({ width: 18, height: 18 });
-  tray = new Tray(icon);
-  tray.setToolTip('窝头 RJ 桌面宠物');
+  if (!tray) {
+    const iconPath = path.join(__dirname, '..', 'assets', 'icons', 'rj.png');
+    const icon = nativeImage.createFromPath(iconPath).resize({ width: 18, height: 18 });
+    tray = new Tray(icon);
+    tray.on('click', () => {
+      if (mainWindow?.isVisible()) hidePet();
+      else showPet();
+    });
+  }
+  const labels = trayLocale === 'en'
+    ? { tooltip: 'RJ Desktop Pet', show: 'Show RJ', hide: 'Hide RJ', quit: 'Quit RJ' }
+    : { tooltip: '窝头 RJ 桌面宠物', show: '显示 RJ', hide: '隐藏 RJ', quit: '退出宠物' };
+  tray.setToolTip(labels.tooltip);
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: '显示 RJ', click: showPet },
-    { label: '隐藏 RJ', click: hidePet },
+    { label: labels.show, click: showPet },
+    { label: labels.hide, click: hidePet },
     { type: 'separator' },
     {
-      label: '退出宠物',
+      label: labels.quit,
       click: () => {
         isQuitting = true;
         app.quit();
       }
     }
   ]));
-  tray.on('click', () => {
-    if (mainWindow?.isVisible()) hidePet();
-    else showPet();
-  });
 }
 
 function createWindow() {
@@ -142,6 +148,11 @@ app.whenReady().then(() => {
   ipcMain.handle('pet:set-autostart', (_event, enabled) => {
     app.setLoginItemSettings({ openAtLogin: Boolean(enabled), openAsHidden: false });
     return app.getLoginItemSettings().openAtLogin;
+  });
+  ipcMain.handle('pet:set-locale', (_event, locale) => {
+    trayLocale = locale === 'en' ? 'en' : 'zh';
+    if (tray) createTray();
+    return trayLocale;
   });
   ipcMain.handle('pet:move-window', (_event, dx, dy) => {
     if (!mainWindow) return;

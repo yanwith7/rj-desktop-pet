@@ -7,6 +7,28 @@ const MAX_BUBBLE_LINES = 7;
 const MAX_BUBBLE_LINE_LENGTH = 14;
 const HEAD_BOTTOM = 132;
 const HEAD_PIVOT_Y = 122;
+const LOCALES = {
+  zh: {
+    language: 'zh-CN', title: '窝头 RJ 桌面宠物', actions: '动作', settings: '设置',
+    working: '工作', jumping: '跳跃', spinning: '转圈', walkRight: '向右走', walkLeft: '向左走', yahou: '呀吼',
+    size: '大小', resetSize: '恢复默认大小', showHealth: '显示血条', showBubble: '显示气泡',
+    launchAtLogin: '开机自启', hide: '暂时隐藏', quit: '退出宠物', bubbleMessage: '气泡文字',
+    save: '保存', cancel: '取消', closeMenu: '关闭面板', bubbleHint: '双击修改文字',
+    bubbleAria: (text) => `${text}，双击修改`, healthTitle: (health) => `RJ 活力：${health}/100`,
+    bubbleCount: (characters, lines) => `${characters}/98 · ${lines}/7行`,
+    loadError: (path) => `无法读取宠物配置：${path}`, renderError: (message) => `宠物渲染失败：${message}`
+  },
+  en: {
+    language: 'en', title: 'RJ Desktop Pet', actions: 'Actions', settings: 'Settings',
+    working: 'Working', jumping: 'Jump', spinning: 'Spin', walkRight: 'Walk right', walkLeft: 'Walk left', yahou: 'Yahoo!',
+    size: 'Size', resetSize: 'Reset size', showHealth: 'Show energy', showBubble: 'Show bubble',
+    launchAtLogin: 'Launch at login', hide: 'Hide RJ', quit: 'Quit RJ', bubbleMessage: 'Bubble message',
+    save: 'Save', cancel: 'Cancel', closeMenu: 'Close menu', bubbleHint: 'Double-click to edit',
+    bubbleAria: (text) => `Double-click to edit: ${text}`, healthTitle: (health) => `RJ energy: ${health}/100`,
+    bubbleCount: (characters, lines) => `${characters}/98 · ${lines}/7 lines`,
+    loadError: (path) => `Could not load pet configuration: ${path}`, renderError: (message) => `RJ could not render: ${message}`
+  }
+};
 
 const canvas = document.querySelector('#pet-canvas');
 const ctx = canvas.getContext('2d');
@@ -31,8 +53,13 @@ const defaults = {
   bubbleText: '主人，今天也请加油吧！',
   healthVisible: true,
   health: 100,
-  lastHealthAt: Date.now()
+  lastHealthAt: Date.now(),
+  locale: 'zh'
 };
+
+function defaultBubble(locale) {
+  return locale === 'en' ? 'You’ve got this today!' : '主人，今天也请加油吧！';
+}
 
 let settings = loadSettings();
 let pet;
@@ -53,6 +80,44 @@ let regularShellSize = { width: 286, height: 220 };
 const yahouAudio = new Audio('../assets/audio/yahou.m4a');
 yahouAudio.preload = 'auto';
 yahouAudio.volume = 0.9;
+
+function localeCode() {
+  return LOCALES[settings?.locale] ? settings.locale : 'zh';
+}
+
+function copy() {
+  return LOCALES[localeCode()];
+}
+
+function translateUI() {
+  const text = copy();
+  document.documentElement.lang = text.language;
+  document.title = text.title;
+  document.querySelectorAll('[data-i18n]').forEach((element) => {
+    const value = text[element.dataset.i18n];
+    if (typeof value === 'string') element.textContent = value;
+  });
+  document.querySelector('#close-menu').setAttribute('aria-label', text.closeMenu);
+  bubble.title = text.bubbleHint;
+  bubbleEditor.setAttribute('aria-label', text.bubbleMessage);
+  bubbleInput.setAttribute('aria-label', localeCode() === 'zh'
+    ? '气泡文字，最多7行、每行14字'
+    : 'Bubble message, up to 7 lines and 14 characters per line');
+  document.querySelector('#locale-zh').classList.toggle('is-selected', localeCode() === 'zh');
+  document.querySelector('#locale-en').classList.toggle('is-selected', localeCode() === 'en');
+  updateBubbleCounter();
+}
+
+async function setLocale(nextLocale) {
+  if (!LOCALES[nextLocale]) return;
+  const previousLocale = localeCode();
+  if (settings.bubbleText === defaultBubble(previousLocale)) settings.bubbleText = defaultBubble(nextLocale);
+  settings.locale = nextLocale;
+  persistSettings();
+  translateUI();
+  applyPreferences();
+  try { await window.desktopPet.setLocale(nextLocale); } catch (_) { /* Tray stays in its default language. */ }
+}
 
 function loadSettings() {
   try {
@@ -108,7 +173,7 @@ function bubbleMetrics(text) {
 
 async function loadJson(relativePath) {
   const response = await fetch(relativePath);
-  if (!response.ok) throw new Error(`无法读取宠物配置：${relativePath}`);
+  if (!response.ok) throw new Error(copy().loadError(relativePath));
   return response.json();
 }
 
@@ -125,6 +190,7 @@ async function loadPet() {
   canvas.width = pet.cellWidth;
   canvas.height = pet.cellHeight;
   applyHealthDecay();
+  translateUI();
   applyPreferences();
   initializeAutoStart();
 }
@@ -178,7 +244,7 @@ function syncShellSize() {
 function applyPreferences() {
   settings.bubbleText = normalizeBubbleText(settings.bubbleText || defaults.bubbleText) || defaults.bubbleText;
   bubbleText.textContent = settings.bubbleText;
-  bubble.setAttribute('aria-label', `${settings.bubbleText}，双击修改`);
+  bubble.setAttribute('aria-label', copy().bubbleAria(settings.bubbleText));
   bubble.classList.toggle('is-hidden', !settings.bubbleVisible);
   healthWrap.classList.toggle('is-hidden', !settings.healthVisible);
   bubbleToggle.checked = settings.bubbleVisible;
@@ -191,7 +257,7 @@ function updateHealthUI() {
   const health = clamp(Math.round(Number(settings.health) || 0), 0, 100);
   settings.health = health;
   healthFill.style.width = `${health}%`;
-  healthWrap.title = `RJ 活力：${health}/100`;
+  healthWrap.title = copy().healthTitle(health);
 }
 
 function applyHealthDecay() {
@@ -451,7 +517,7 @@ function draw(timestamp) {
     requestAnimationFrame(draw);
   } catch (error) {
     console.error('RJ canvas render failed:', error);
-    document.body.innerHTML = `<pre style="padding:16px;color:#8b2436;background:#fff">宠物渲染失败：${error.message}</pre>`;
+    document.body.innerHTML = `<pre style="padding:16px;color:#8b2436;background:#fff">${copy().renderError(error.message)}</pre>`;
   }
 }
 
@@ -495,7 +561,7 @@ function updateBubbleCounter() {
   if (bubbleInput.value !== normalized) bubbleInput.value = normalized;
   const characters = Array.from(normalized.replace(/\n/g, '')).length;
   const lines = normalized ? normalized.split('\n').length : 1;
-  bubbleCount.textContent = `${characters}/98 · ${lines}/7行`;
+  bubbleCount.textContent = copy().bubbleCount(characters, lines);
 }
 
 function saveBubbleText() {
@@ -611,6 +677,8 @@ document.querySelector('#close-menu').addEventListener('click', hideMenu);
 document.querySelector('#walk-right').addEventListener('click', moveRight);
 document.querySelector('#walk-left').addEventListener('click', moveLeft);
 document.querySelector('#yahou-sound').addEventListener('click', playYahou);
+document.querySelector('#locale-zh').addEventListener('click', () => setLocale('zh'));
+document.querySelector('#locale-en').addEventListener('click', () => setLocale('en'));
 document.querySelector('#reset-size').addEventListener('click', () => {
   settings.petWidth = DEFAULT_PET_WIDTH;
   applyLayout();

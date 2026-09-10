@@ -1,4 +1,6 @@
-# 窝头 RJ 桌面宠物
+# 窝头 RJ 桌面宠物 / RJ Desktop Pet
+
+[中文](README.md) · [English](README.en.md) · [下载最新版本](https://github.com/yanwith7/rj-desktop-pet/releases/latest)
 
 这是一个面向 macOS 和 Windows 的轻量桌面宠物 MVP。当前内置已经确认过的「可爱帅气窝头 RJ」v2 spritesheet，运行后会显示为透明、无边框、始终置顶的小窗口。
 
@@ -10,10 +12,10 @@
 | --- | --- | --- |
 | MacBook / iMac（M1、M2、M3、M4） | `mac-arm64.dmg` | Apple Silicon 机型，绝大多数近年 Mac 选择这个。 |
 | MacBook / iMac（Intel 芯片） | `mac-x64.dmg` | 2019 年及更早的多数 Intel Mac。 |
-| 普通 Windows 10 / 11 电脑 | `win-x64-setup.exe` | 推荐；会安装应用并创建桌面快捷方式。 |
-| Windows on ARM 设备 | `win-arm64-setup.exe` | 例如部分 Surface Pro X / Snapdragon Windows 电脑。 |
+| 普通 Windows 10 / 11 电脑 | `win-x64.exe` | 推荐；会安装应用并创建桌面快捷方式。 |
+| Windows on ARM 设备 | `win-arm64.exe` | 例如部分 Surface Pro X / Snapdragon Windows 电脑。 |
 
-每个 Windows 架构还提供 `portable.exe`，无需安装、解压后可直接运行，但不会创建快捷方式。macOS 的 `.zip` 与 `.dmg` 内容相同，通常优先下载 `.dmg`。
+macOS 的 `.zip` 与 `.dmg` 内容相同，通常优先下载 `.dmg`。应用首次运行后，可在右键菜单的“设置”里选择中文或 English。
 
 macOS 首次运行未签名版本时，若系统拦截，请在访达中按住 Control 点击应用并选择“打开”。Windows 若出现 SmartScreen 提示，待正式代码签名后会明显减少；当前可通过“更多信息 → 仍要运行”启动。
 

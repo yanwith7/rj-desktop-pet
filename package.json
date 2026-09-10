@@ -1,6 +1,6 @@
 {
   "name": "rj-desktop-pet",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "description": "A tiny cross-platform desktop pet built around the approved RJ sprite atlas.",
   "main": "src/main.js",
   "author": "RJ Desktop Pet",

@@ -3,46 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>窝头 RJ 桌面宠物</title>
+    <title>RJ Desktop Pet</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main id="pet-shell" aria-label="窝头 RJ 桌面宠物">
-      <div id="pet-stage" aria-label="可拖动的窝头 RJ">
+    <main id="pet-shell" aria-label="RJ Desktop Pet">
+      <div id="pet-stage" aria-label="Draggable RJ">
         <canvas id="pet-canvas" width="192" height="208" aria-label="窝头 RJ"></canvas>
       </div>
-      <button id="status-bubble" title="双击修改文字" aria-label="主人，今天也请加油吧！，双击修改">
+      <button id="status-bubble" title="Double-click to edit" aria-label="Double-click to edit RJ's message">
         <span id="bubble-text">主人，今天也请加油吧！</span>
       </button>
-      <div id="health-wrap" aria-label="RJ 活力值">
+      <div id="health-wrap" aria-label="RJ energy">
         <div id="health-track"><div id="health-fill"></div></div>
       </div>
-      <section id="pet-menu" class="hidden" aria-label="宠物菜单">
-        <div class="menu-title"><span>RJ MENU</span><button id="close-menu" class="menu-close" aria-label="关闭面板">×</button></div>
-        <div class="menu-section-label">动作</div>
+      <section id="pet-menu" class="hidden" aria-label="RJ menu">
+        <div class="menu-title"><span>RJ MENU</span><button id="close-menu" class="menu-close" aria-label="Close menu">×</button></div>
+        <div class="menu-section-label" data-i18n="actions">Actions</div>
         <div class="action-grid">
-          <button data-state="waiting">工作</button>
-          <button data-state="jumping">跳跃</button>
-          <button data-state="spinning">转圈</button>
-          <button id="walk-right">向右走</button>
-          <button id="walk-left">向左走</button>
-          <button id="yahou-sound">呀吼</button>
+          <button data-state="waiting" data-i18n="working">Working</button>
+          <button data-state="jumping" data-i18n="jumping">Jump</button>
+          <button data-state="spinning" data-i18n="spinning">Spin</button>
+          <button id="walk-right" data-i18n="walkRight">Walk right</button>
+          <button id="walk-left" data-i18n="walkLeft">Walk left</button>
+          <button id="yahou-sound" data-i18n="yahou">Yahoo!</button>
         </div>
-        <div class="menu-section-label">设置</div>
+        <div class="menu-section-label" data-i18n="settings">Settings</div>
         <div class="settings-grid">
-          <label class="range-label">大小 <input id="size-range" type="range" min="72" max="300" step="1" /></label>
-          <button id="reset-size">恢复默认大小</button>
-          <label class="toggle"><input id="health-toggle" type="checkbox" checked /> 显示血条</label>
-          <label class="toggle"><input id="bubble-toggle" type="checkbox" checked /> 显示气泡</label>
-          <label class="toggle"><input id="autostart-toggle" type="checkbox" /> 开机自启</label>
-          <button id="hide-pet">暂时隐藏</button>
-          <button id="quit-pet" class="danger">退出宠物</button>
+          <label class="range-label"><span data-i18n="size">Size</span> <input id="size-range" type="range" min="72" max="300" step="1" /></label>
+          <button id="reset-size" data-i18n="resetSize">Reset size</button>
+          <label class="toggle"><input id="health-toggle" type="checkbox" checked /> <span data-i18n="showHealth">Show energy</span></label>
+          <label class="toggle"><input id="bubble-toggle" type="checkbox" checked /> <span data-i18n="showBubble">Show bubble</span></label>
+          <label class="toggle"><input id="autostart-toggle" type="checkbox" /> <span data-i18n="launchAtLogin">Launch at login</span></label>
+          <button id="hide-pet" data-i18n="hide">Hide RJ</button>
+          <button id="locale-zh" class="locale-button" type="button">中文</button>
+          <button id="locale-en" class="locale-button" type="button">English</button>
+          <button id="quit-pet" class="danger" data-i18n="quit">Quit RJ</button>
         </div>
       </section>
-      <section id="bubble-editor" class="is-hidden" aria-label="编辑气泡文字">
-        <div class="editor-title">气泡文字 <span id="bubble-count">0/98 · 1/7行</span></div>
-        <textarea id="bubble-input" maxlength="104" rows="7" aria-label="气泡文字，最多7行、每行14字"></textarea>
-        <div class="editor-actions"><button id="bubble-save" type="button">保存</button><button id="bubble-cancel" type="button">取消</button></div>
+      <section id="bubble-editor" class="is-hidden" aria-label="Edit bubble message">
+        <div class="editor-title"><span data-i18n="bubbleMessage">Bubble message</span> <span id="bubble-count">0/98 · 1/7 lines</span></div>
+        <textarea id="bubble-input" maxlength="104" rows="7" aria-label="Bubble message, up to 7 lines and 14 characters per line"></textarea>
+        <div class="editor-actions"><button id="bubble-save" type="button" data-i18n="save">Save</button><button id="bubble-cancel" type="button" data-i18n="cancel">Cancel</button></div>
       </section>
     </main>
     <script src="renderer.js"></script>
