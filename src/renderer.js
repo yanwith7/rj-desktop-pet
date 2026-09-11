@@ -327,8 +327,10 @@ function petHead() {
 
 function clipFacePanel() {
   ctx.beginPath();
-  // Match the actual black plush face panel, not the surrounding white fur.
-  ctx.roundRect(32, 73, 128, 68, 27);
+  // The face panel ends above RJ's white lower muzzle.  Keeping this mask
+  // deliberately inside that seam means an expression can never paint black
+  // texture on the white plush, even while the head is nodding.
+  ctx.roundRect(32, 72, 128, 64, 25);
   ctx.clip();
 }
 
@@ -356,7 +358,10 @@ function drawBlush() {
 }
 
 function detectEyeAnchors(sourceX, sourceRow) {
-  const fallback = [{ x: 71, y: 99 }, { x: 121, y: 99 }];
+  const fallback = [
+    { x: 71, y: 99, bounds: { minX: 60, maxX: 82, minY: 88, maxY: 110 } },
+    { x: 121, y: 99, bounds: { minX: 110, maxX: 132, minY: 88, maxY: 110 } }
+  ];
   if (!faceSampleCtx) return fallback;
 
   faceSampleCtx.clearRect(0, 0, pet.cellWidth, pet.cellHeight);
@@ -402,31 +407,48 @@ function detectEyeAnchors(sourceX, sourceRow) {
   }
 
   return groups.map((group, index) => group.count > 18
-    ? { x: (group.minX + group.maxX) / 2, y: (group.minY + group.maxY) / 2 }
+    ? {
+      x: (group.minX + group.maxX) / 2,
+      y: (group.minY + group.maxY) / 2,
+      // Retain the exact measured eye edge.  The repair mask below needs the
+      // whole original embroidered eye, not just its visual centre point.
+      bounds: {
+        minX: group.minX,
+        maxX: group.maxX,
+        minY: group.minY,
+        maxY: group.maxY
+      }
+    }
     : fallback[index]);
 }
 
-function restoreFaceTexture(anchor, textureX, sourceX, sourceRow) {
-  // Reuse the real black plush panel from the active sprite frame instead of
-  // painting a flat black rectangle over the original embroidered eyes. The
-  // narrow source strip is deliberately sampled from the clear space between
-  // the two eyes, so no mint-eye pixels can leak into the replacement area.
+function restoreFaceTexture(eye, textureX, sourceX, sourceRow) {
+  // Repair every pixel of the original eye with a small strip of the same
+  // frame's black plush.  This is intentionally a measured rounded rectangle
+  // rather than a broad oval: it removes the full embroidered eye (including
+  // its pale bottom threads) without leaving a large, flat-looking black spot.
+  const padding = { left: 4, right: 4, top: 4, bottom: 5 };
+  const left = Math.floor(eye.bounds.minX - padding.left);
+  const top = Math.floor(eye.bounds.minY - padding.top);
+  const width = Math.ceil(eye.bounds.maxX - eye.bounds.minX + 1 + padding.left + padding.right);
+  const height = Math.ceil(eye.bounds.maxY - eye.bounds.minY + 1 + padding.top + padding.bottom);
+  const stripeWidth = 4;
   ctx.save();
   clipFacePanel();
   ctx.beginPath();
-  ctx.ellipse(anchor.x, anchor.y, 18, 19, 0, 0, Math.PI * 2);
+  ctx.roundRect(left, top, width, height, Math.min(7, height / 2));
   ctx.clip();
-  for (let offset = -18; offset < 18; offset += 6) {
+  for (let offset = 0; offset < width; offset += stripeWidth) {
     ctx.drawImage(
       spriteSheet,
       sourceX + textureX,
-      sourceRow * pet.cellHeight + Math.round(anchor.y - 19),
-      6,
-      39,
-      anchor.x + offset,
-      anchor.y - 19,
-      6,
-      39
+      sourceRow * pet.cellHeight + top,
+      stripeWidth,
+      height,
+      left + offset,
+      top,
+      stripeWidth,
+      height
     );
   }
   ctx.restore();
@@ -439,13 +461,13 @@ function strokeEmbroideredShape(buildPath) {
   ctx.beginPath();
   buildPath(ctx);
   ctx.strokeStyle = 'rgba(65, 132, 121, 0.88)';
-  ctx.lineWidth = 6.2;
+  ctx.lineWidth = 5.4;
   ctx.stroke();
   ctx.strokeStyle = '#99d9ca';
-  ctx.lineWidth = 4.1;
+  ctx.lineWidth = 3.45;
   ctx.stroke();
   ctx.strokeStyle = 'rgba(224, 255, 244, 0.86)';
-  ctx.lineWidth = 1.15;
+  ctx.lineWidth = 1;
   ctx.stroke();
   ctx.restore();
 }
@@ -458,7 +480,7 @@ function drawDizzyEye(anchor) {
     for (let index = 0; index <= steps; index += 1) {
       const progress = index / steps;
       const angle = -Math.PI / 2 + spinOffset + progress * turns;
-      const radius = 1.6 + progress * 7.5;
+      const radius = 1.5 + progress * 6.5;
       const x = anchor.x + Math.cos(angle) * radius;
       const y = anchor.y + Math.sin(angle) * radius;
       if (index === 0) path.moveTo(x, y);
@@ -472,7 +494,9 @@ function drawFaceExpression(expression, sourceX, sourceRow = activeStateRow()) {
   // the exact same anchors as RJ's original embroidered eyes, including while
   // the head is moving in the cheer animation.
   const eyeAnchors = detectEyeAnchors(sourceX, sourceRow);
-  const textureX = Math.round((eyeAnchors[0].x + eyeAnchors[1].x) / 2 - 4);
+  // The narrow gap between RJ's eyes is uninterrupted black plush in every
+  // standard animation frame, so it is safe to use as the repair source.
+  const textureX = Math.round((eyeAnchors[0].bounds.maxX + eyeAnchors[1].bounds.minX) / 2 - 2);
   ctx.save();
   clipFacePanel();
   for (const anchor of eyeAnchors) restoreFaceTexture(anchor, textureX, sourceX, sourceRow);
@@ -480,21 +504,21 @@ function drawFaceExpression(expression, sourceX, sourceRow = activeStateRow()) {
   if (expression === 'excited') {
     for (const anchor of eyeAnchors) {
       strokeEmbroideredShape((path) => {
-        path.moveTo(anchor.x - 11, anchor.y + 6);
-        path.lineTo(anchor.x, anchor.y - 7);
-        path.lineTo(anchor.x + 11, anchor.y + 6);
+        path.moveTo(anchor.x - 9, anchor.y + 5);
+        path.lineTo(anchor.x, anchor.y - 6);
+        path.lineTo(anchor.x + 9, anchor.y + 5);
       });
     }
   } else if (expression === 'dizzy') {
     for (const anchor of eyeAnchors) drawDizzyEye(anchor);
   } else if (expression === 'shy') {
     strokeEmbroideredShape((path) => {
-      path.moveTo(eyeAnchors[0].x - 11, eyeAnchors[0].y - 11);
-      path.lineTo(eyeAnchors[0].x + 11, eyeAnchors[0].y);
-      path.lineTo(eyeAnchors[0].x - 11, eyeAnchors[0].y + 11);
-      path.moveTo(eyeAnchors[1].x + 11, eyeAnchors[1].y - 11);
-      path.lineTo(eyeAnchors[1].x - 11, eyeAnchors[1].y);
-      path.lineTo(eyeAnchors[1].x + 11, eyeAnchors[1].y + 11);
+      path.moveTo(eyeAnchors[0].x - 9, eyeAnchors[0].y - 8);
+      path.lineTo(eyeAnchors[0].x + 8, eyeAnchors[0].y);
+      path.lineTo(eyeAnchors[0].x - 9, eyeAnchors[0].y + 8);
+      path.moveTo(eyeAnchors[1].x + 9, eyeAnchors[1].y - 8);
+      path.lineTo(eyeAnchors[1].x - 8, eyeAnchors[1].y);
+      path.lineTo(eyeAnchors[1].x + 9, eyeAnchors[1].y + 8);
     });
   }
   ctx.restore();
