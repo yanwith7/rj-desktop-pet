@@ -1,3 +1,5 @@
+const fs = require('node:fs');
+const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 /**
@@ -16,7 +18,14 @@ if (process.platform !== 'darwin') {
   module.exports = async () => {};
 } else {
   module.exports = async function afterPack(context) {
-    const appPath = context.appOutDir;
+    const appBundle = fs.readdirSync(context.appOutDir, { withFileTypes: true })
+      .find((entry) => entry.isDirectory() && entry.name.endsWith('.app'));
+
+    if (!appBundle) {
+      throw new Error(`Could not find a .app bundle in ${context.appOutDir}`);
+    }
+
+    const appPath = path.join(context.appOutDir, appBundle.name);
     const result = spawnSync('/usr/bin/codesign', [
       '--force',
       '--deep',
