@@ -29,9 +29,11 @@
       "assets/**/*",
       "package.json"
     ],
+    "afterPack": "scripts/after-pack.cjs",
     "mac": {
       "category": "public.app-category.entertainment",
       "icon": "assets/icons/rj.icns",
+      "identity": null,
       "target": [
         {
           "target": "dmg",
