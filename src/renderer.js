@@ -327,7 +327,8 @@ function petHead() {
 
 function clipFacePanel() {
   ctx.beginPath();
-  ctx.roundRect(21, 67, 150, 76, 31);
+  // Match the actual black plush face panel, not the surrounding white fur.
+  ctx.roundRect(32, 73, 128, 68, 27);
   ctx.clip();
 }
 
@@ -355,7 +356,7 @@ function drawBlush() {
 }
 
 function detectEyeAnchors(sourceX, sourceRow) {
-  const fallback = [{ x: 71, y: 101 }, { x: 121, y: 101 }];
+  const fallback = [{ x: 71, y: 99 }, { x: 121, y: 99 }];
   if (!faceSampleCtx) return fallback;
 
   faceSampleCtx.clearRect(0, 0, pet.cellWidth, pet.cellHeight);
@@ -373,8 +374,8 @@ function detectEyeAnchors(sourceX, sourceRow) {
 
   const pixels = faceSampleCtx.getImageData(0, 0, pet.cellWidth, pet.cellHeight).data;
   const groups = [
-    { count: 0, x: 0, y: 0 },
-    { count: 0, x: 0, y: 0 }
+    { count: 0, minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity },
+    { count: 0, minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
   ];
 
   for (let y = 72; y <= 132; y += 1) {
@@ -393,13 +394,15 @@ function detectEyeAnchors(sourceX, sourceRow) {
       if (!isMintThread) continue;
       const group = groups[x < pet.cellWidth / 2 ? 0 : 1];
       group.count += 1;
-      group.x += x;
-      group.y += y;
+      group.minX = Math.min(group.minX, x);
+      group.maxX = Math.max(group.maxX, x);
+      group.minY = Math.min(group.minY, y);
+      group.maxY = Math.max(group.maxY, y);
     }
   }
 
   return groups.map((group, index) => group.count > 18
-    ? { x: group.x / group.count, y: group.y / group.count }
+    ? { x: (group.minX + group.maxX) / 2, y: (group.minY + group.maxY) / 2 }
     : fallback[index]);
 }
 
@@ -411,19 +414,19 @@ function restoreFaceTexture(anchor, textureX, sourceX, sourceRow) {
   ctx.save();
   clipFacePanel();
   ctx.beginPath();
-  ctx.ellipse(anchor.x, anchor.y, 24, 25, 0, 0, Math.PI * 2);
+  ctx.ellipse(anchor.x, anchor.y, 18, 19, 0, 0, Math.PI * 2);
   ctx.clip();
-  for (let offset = -24; offset < 24; offset += 8) {
+  for (let offset = -18; offset < 18; offset += 6) {
     ctx.drawImage(
       spriteSheet,
       sourceX + textureX,
-      sourceRow * pet.cellHeight + Math.round(anchor.y - 25),
-      8,
-      49,
+      sourceRow * pet.cellHeight + Math.round(anchor.y - 19),
+      6,
+      39,
       anchor.x + offset,
-      anchor.y - 25,
-      8,
-      49
+      anchor.y - 19,
+      6,
+      39
     );
   }
   ctx.restore();
@@ -449,12 +452,13 @@ function strokeEmbroideredShape(buildPath) {
 
 function drawDizzyEye(anchor) {
   strokeEmbroideredShape((path) => {
-    const turns = Math.PI * 3.35;
-    const steps = 38;
+    const turns = Math.PI * 3.1;
+    const steps = 34;
+    const spinOffset = (Date.now() / 190) % (Math.PI * 2);
     for (let index = 0; index <= steps; index += 1) {
       const progress = index / steps;
-      const angle = -Math.PI / 2 + progress * turns;
-      const radius = 1.8 + progress * 8.7;
+      const angle = -Math.PI / 2 + spinOffset + progress * turns;
+      const radius = 1.6 + progress * 7.5;
       const x = anchor.x + Math.cos(angle) * radius;
       const y = anchor.y + Math.sin(angle) * radius;
       if (index === 0) path.moveTo(x, y);
