@@ -32,6 +32,8 @@ const LOCALES = {
 
 const canvas = document.querySelector('#pet-canvas');
 const ctx = canvas.getContext('2d');
+const faceSampleCanvas = document.createElement('canvas');
+const faceSampleCtx = faceSampleCanvas.getContext('2d', { willReadFrequently: true });
 const menu = document.querySelector('#pet-menu');
 const stage = document.querySelector('#pet-stage');
 const shell = document.querySelector('#pet-shell');
@@ -189,6 +191,8 @@ async function loadPet() {
   });
   canvas.width = pet.cellWidth;
   canvas.height = pet.cellHeight;
+  faceSampleCanvas.width = pet.cellWidth;
+  faceSampleCanvas.height = pet.cellHeight;
   applyHealthDecay();
   translateUI();
   applyPreferences();
@@ -350,25 +354,78 @@ function drawBlush() {
   ctx.restore();
 }
 
-function restoreFaceTexture(centerX, sourceX, sourceRow) {
+function detectEyeAnchors(sourceX, sourceRow) {
+  const fallback = [{ x: 71, y: 101 }, { x: 121, y: 101 }];
+  if (!faceSampleCtx) return fallback;
+
+  faceSampleCtx.clearRect(0, 0, pet.cellWidth, pet.cellHeight);
+  faceSampleCtx.drawImage(
+    spriteSheet,
+    sourceX,
+    sourceRow * pet.cellHeight,
+    pet.cellWidth,
+    pet.cellHeight,
+    0,
+    0,
+    pet.cellWidth,
+    pet.cellHeight
+  );
+
+  const pixels = faceSampleCtx.getImageData(0, 0, pet.cellWidth, pet.cellHeight).data;
+  const groups = [
+    { count: 0, x: 0, y: 0 },
+    { count: 0, x: 0, y: 0 }
+  ];
+
+  for (let y = 72; y <= 132; y += 1) {
+    for (let x = 28; x <= 164; x += 1) {
+      const index = (y * pet.cellWidth + x) * 4;
+      const red = pixels[index];
+      const green = pixels[index + 1];
+      const blue = pixels[index + 2];
+      const alpha = pixels[index + 3];
+      const isMintThread = alpha > 120
+        && green > 112
+        && blue > 94
+        && red < 196
+        && green > red + 22
+        && blue > red + 11;
+      if (!isMintThread) continue;
+      const group = groups[x < pet.cellWidth / 2 ? 0 : 1];
+      group.count += 1;
+      group.x += x;
+      group.y += y;
+    }
+  }
+
+  return groups.map((group, index) => group.count > 18
+    ? { x: group.x / group.count, y: group.y / group.count }
+    : fallback[index]);
+}
+
+function restoreFaceTexture(anchor, textureX, sourceX, sourceRow) {
   // Reuse the real black plush panel from the active sprite frame instead of
-  // painting a flat black rectangle over the original embroidered eyes.
+  // painting a flat black rectangle over the original embroidered eyes. The
+  // narrow source strip is deliberately sampled from the clear space between
+  // the two eyes, so no mint-eye pixels can leak into the replacement area.
   ctx.save();
   clipFacePanel();
   ctx.beginPath();
-  ctx.ellipse(centerX, 100, 19, 21, 0, 0, Math.PI * 2);
+  ctx.ellipse(anchor.x, anchor.y, 24, 25, 0, 0, Math.PI * 2);
   ctx.clip();
-  ctx.drawImage(
-    spriteSheet,
-    sourceX + 82,
-    sourceRow * pet.cellHeight + 78,
-    28,
-    43,
-    centerX - 19,
-    79,
-    38,
-    43
-  );
+  for (let offset = -24; offset < 24; offset += 8) {
+    ctx.drawImage(
+      spriteSheet,
+      sourceX + textureX,
+      sourceRow * pet.cellHeight + Math.round(anchor.y - 25),
+      8,
+      49,
+      anchor.x + offset,
+      anchor.y - 25,
+      8,
+      49
+    );
+  }
   ctx.restore();
 }
 
@@ -390,7 +447,7 @@ function strokeEmbroideredShape(buildPath) {
   ctx.restore();
 }
 
-function drawDizzyEye(centerX) {
+function drawDizzyEye(anchor) {
   strokeEmbroideredShape((path) => {
     const turns = Math.PI * 3.35;
     const steps = 38;
@@ -398,8 +455,8 @@ function drawDizzyEye(centerX) {
       const progress = index / steps;
       const angle = -Math.PI / 2 + progress * turns;
       const radius = 1.8 + progress * 8.7;
-      const x = centerX + Math.cos(angle) * radius;
-      const y = 100 + Math.sin(angle) * radius;
+      const x = anchor.x + Math.cos(angle) * radius;
+      const y = anchor.y + Math.sin(angle) * radius;
       if (index === 0) path.moveTo(x, y);
       else path.lineTo(x, y);
     }
@@ -407,29 +464,33 @@ function drawDizzyEye(centerX) {
 }
 
 function drawFaceExpression(expression, sourceX, sourceRow = activeStateRow()) {
-  const eyeCenters = [63, 129];
+  // Inspect the active sprite frame first. Each new expression therefore uses
+  // the exact same anchors as RJ's original embroidered eyes, including while
+  // the head is moving in the cheer animation.
+  const eyeAnchors = detectEyeAnchors(sourceX, sourceRow);
+  const textureX = Math.round((eyeAnchors[0].x + eyeAnchors[1].x) / 2 - 4);
   ctx.save();
   clipFacePanel();
-  for (const centerX of eyeCenters) restoreFaceTexture(centerX, sourceX, sourceRow);
+  for (const anchor of eyeAnchors) restoreFaceTexture(anchor, textureX, sourceX, sourceRow);
 
   if (expression === 'excited') {
-    for (const centerX of eyeCenters) {
+    for (const anchor of eyeAnchors) {
       strokeEmbroideredShape((path) => {
-        path.moveTo(centerX - 11, 106);
-        path.lineTo(centerX, 93);
-        path.lineTo(centerX + 11, 106);
+        path.moveTo(anchor.x - 11, anchor.y + 6);
+        path.lineTo(anchor.x, anchor.y - 7);
+        path.lineTo(anchor.x + 11, anchor.y + 6);
       });
     }
   } else if (expression === 'dizzy') {
-    for (const centerX of eyeCenters) drawDizzyEye(centerX);
+    for (const anchor of eyeAnchors) drawDizzyEye(anchor);
   } else if (expression === 'shy') {
     strokeEmbroideredShape((path) => {
-      path.moveTo(51, 89);
-      path.lineTo(66, 100);
-      path.lineTo(51, 111);
-      path.moveTo(141, 89);
-      path.lineTo(126, 100);
-      path.lineTo(141, 111);
+      path.moveTo(eyeAnchors[0].x - 11, eyeAnchors[0].y - 11);
+      path.lineTo(eyeAnchors[0].x + 11, eyeAnchors[0].y);
+      path.lineTo(eyeAnchors[0].x - 11, eyeAnchors[0].y + 11);
+      path.moveTo(eyeAnchors[1].x + 11, eyeAnchors[1].y - 11);
+      path.lineTo(eyeAnchors[1].x - 11, eyeAnchors[1].y);
+      path.lineTo(eyeAnchors[1].x + 11, eyeAnchors[1].y + 11);
     });
   }
   ctx.restore();
