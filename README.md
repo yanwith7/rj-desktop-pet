@@ -1,8 +1,9 @@
 # 窝头 RJ 桌面宠物 / RJ Desktop Pet
-
+## 下载请点击链接直接进入
 [中文](README.md) · [English](README.en.md) · [下载最新版本](https://github.com/yanwith7/rj-desktop-pet/releases/latest)
 
-这是一个面向 macOS 和 Windows 的轻量桌面宠物 MVP。当前内置已经确认过的「可爱帅气窝头 RJ」v2 spritesheet，运行后会显示为透明、无边框、始终置顶的小窗口。
+
+这是一个面向 macOS 和 Windows 的轻量桌面宠物 MVP。当前内置已经确认过的「可爱帅气窝头 RJ」，运行后会显示为透明、无边框、始终置顶的小窗口，快来一起和它玩耍吧～
 
 ## 下载与安装
 
