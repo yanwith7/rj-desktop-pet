@@ -57,8 +57,8 @@ const defaults = {
   locale: 'zh'
 };
 
-function defaultBubble(locale) {
-  return locale === 'en' ? 'You’ve got this today!' : '主人，今天也请加油吧！';
+function defaultBubble() {
+  return '主人，今天也请加油吧！';
 }
 
 let settings = loadSettings();
@@ -110,8 +110,6 @@ function translateUI() {
 
 async function setLocale(nextLocale) {
   if (!LOCALES[nextLocale]) return;
-  const previousLocale = localeCode();
-  if (settings.bubbleText === defaultBubble(previousLocale)) settings.bubbleText = defaultBubble(nextLocale);
   settings.locale = nextLocale;
   persistSettings();
   translateUI();
@@ -124,7 +122,9 @@ function loadSettings() {
     const saved = { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY)) };
     // Correct the previous preview's missing backslash while preserving every
     // intentionally customised bubble message.
-    if (saved.bubbleText === '主人加油 ^_^') saved.bubbleText = defaults.bubbleText;
+    if (saved.bubbleText === '主人加油 ^_^' || saved.bubbleText === 'You’ve got this today!') {
+      saved.bubbleText = defaults.bubbleText;
+    }
     return saved;
   } catch (_) {
     return { ...defaults };
@@ -228,11 +228,17 @@ function applyLayout() {
 }
 
 function syncShellSize() {
+  const menuWidth = menuOpen && !menu.classList.contains('hidden')
+    ? menu.offsetLeft + menu.offsetWidth + 14
+    : 352;
+  const menuHeight = menuOpen && !menu.classList.contains('hidden')
+    ? menu.offsetTop + menu.offsetHeight + 14
+    : 310;
   const shellWidth = menuOpen
-    ? Math.max(regularShellSize.width, 352)
+    ? Math.max(regularShellSize.width, menuWidth)
     : editorOpen ? Math.max(regularShellSize.width, 300) : regularShellSize.width;
   const shellHeight = menuOpen
-    ? Math.max(regularShellSize.height, 310)
+    ? Math.max(regularShellSize.height, menuHeight)
     : editorOpen ? Math.max(regularShellSize.height, 250) : regularShellSize.height;
   document.documentElement.style.setProperty('--shell-width', `${shellWidth}px`);
   document.documentElement.style.setProperty('--shell-height', `${shellHeight}px`);
@@ -344,48 +350,87 @@ function drawBlush() {
   ctx.restore();
 }
 
-function drawFaceExpression(expression) {
+function restoreFaceTexture(centerX, sourceX, sourceRow) {
+  // Reuse the real black plush panel from the active sprite frame instead of
+  // painting a flat black rectangle over the original embroidered eyes.
+  ctx.save();
+  clipFacePanel();
+  ctx.beginPath();
+  ctx.ellipse(centerX, 100, 19, 21, 0, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.drawImage(
+    spriteSheet,
+    sourceX + 82,
+    sourceRow * pet.cellHeight + 78,
+    28,
+    43,
+    centerX - 19,
+    79,
+    38,
+    43
+  );
+  ctx.restore();
+}
+
+function strokeEmbroideredShape(buildPath) {
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  buildPath(ctx);
+  ctx.strokeStyle = 'rgba(65, 132, 121, 0.88)';
+  ctx.lineWidth = 6.2;
+  ctx.stroke();
+  ctx.strokeStyle = '#99d9ca';
+  ctx.lineWidth = 4.1;
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(224, 255, 244, 0.86)';
+  ctx.lineWidth = 1.15;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawDizzyEye(centerX) {
+  strokeEmbroideredShape((path) => {
+    const turns = Math.PI * 3.35;
+    const steps = 38;
+    for (let index = 0; index <= steps; index += 1) {
+      const progress = index / steps;
+      const angle = -Math.PI / 2 + progress * turns;
+      const radius = 1.8 + progress * 8.7;
+      const x = centerX + Math.cos(angle) * radius;
+      const y = 100 + Math.sin(angle) * radius;
+      if (index === 0) path.moveTo(x, y);
+      else path.lineTo(x, y);
+    }
+  });
+}
+
+function drawFaceExpression(expression, sourceX, sourceRow = activeStateRow()) {
   const eyeCenters = [63, 129];
   ctx.save();
   clipFacePanel();
-  // Cover the normal mint eyes with the same near-black face-panel tone.
-  // This preserves RJ's plush face while letting each interaction read clearly.
-  ctx.fillStyle = '#101114';
-  for (const centerX of eyeCenters) ctx.fillRect(centerX - 18, 80, 36, 38);
-  ctx.strokeStyle = '#a9e1d4';
-  ctx.fillStyle = '#a9e1d4';
-  ctx.lineWidth = 5;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
+  for (const centerX of eyeCenters) restoreFaceTexture(centerX, sourceX, sourceRow);
 
   if (expression === 'excited') {
     for (const centerX of eyeCenters) {
-      ctx.beginPath();
-      ctx.moveTo(centerX - 11, 105);
-      ctx.lineTo(centerX, 92);
-      ctx.lineTo(centerX + 11, 105);
-      ctx.stroke();
+      strokeEmbroideredShape((path) => {
+        path.moveTo(centerX - 11, 106);
+        path.lineTo(centerX, 93);
+        path.lineTo(centerX + 11, 106);
+      });
     }
   } else if (expression === 'dizzy') {
-    for (const centerX of eyeCenters) {
-      ctx.beginPath();
-      ctx.arc(centerX, 99, 10, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.fillRect(centerX - 2, 91, 4, 16);
-      ctx.fillRect(centerX - 8, 97, 16, 4);
-      ctx.fillStyle = '#101114';
-      ctx.fillRect(centerX - 2, 97, 4, 4);
-      ctx.fillStyle = '#a9e1d4';
-    }
+    for (const centerX of eyeCenters) drawDizzyEye(centerX);
   } else if (expression === 'shy') {
-    ctx.beginPath();
-    ctx.moveTo(52, 89);
-    ctx.lineTo(66, 99);
-    ctx.lineTo(52, 109);
-    ctx.moveTo(140, 89);
-    ctx.lineTo(126, 99);
-    ctx.lineTo(140, 109);
-    ctx.stroke();
+    strokeEmbroideredShape((path) => {
+      path.moveTo(51, 89);
+      path.lineTo(66, 100);
+      path.lineTo(51, 111);
+      path.moveTo(141, 89);
+      path.lineTo(126, 100);
+      path.lineTo(141, 111);
+    });
   }
   ctx.restore();
 }
@@ -422,7 +467,7 @@ function drawPettedFrame(sourceX) {
     HEAD_BOTTOM
   );
   drawBlush();
-  drawFaceExpression('shy');
+  drawFaceExpression('shy', sourceX, activeStateRow());
   ctx.restore();
 }
 
@@ -461,7 +506,7 @@ function drawYahouFrame(sourceX) {
   ctx.scale(1 / stretch, stretch);
   ctx.translate(-pet.cellWidth / 2, -pet.cellHeight / 2);
   ctx.drawImage(spriteSheet, sourceX, activeStateRow() * pet.cellHeight, pet.cellWidth, pet.cellHeight, 0, 0, pet.cellWidth, pet.cellHeight);
-  drawFaceExpression('excited');
+  drawFaceExpression('excited', sourceX, activeStateRow());
   ctx.restore();
   drawPixelConfetti(elapsed);
 }
@@ -512,7 +557,7 @@ function draw(timestamp) {
         pet.cellWidth,
         pet.cellHeight
       );
-      if (canvas.classList.contains('is-spinning')) drawFaceExpression('dizzy');
+      if (canvas.classList.contains('is-spinning')) drawFaceExpression('dizzy', sourceX, state.row);
     }
     requestAnimationFrame(draw);
   } catch (error) {
@@ -523,8 +568,8 @@ function draw(timestamp) {
 
 function showMenu() {
   menuOpen = true;
-  syncShellSize();
   menu.classList.remove('hidden');
+  syncShellSize();
   clearTimeout(menuTimer);
   menuTimer = setTimeout(hideMenu, 11000);
 }

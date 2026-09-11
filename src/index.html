@@ -18,7 +18,16 @@
         <div id="health-track"><div id="health-fill"></div></div>
       </div>
       <section id="pet-menu" class="hidden" aria-label="RJ menu">
-        <div class="menu-title"><span>RJ MENU</span><button id="close-menu" class="menu-close" aria-label="Close menu">×</button></div>
+        <div class="menu-title">
+          <span>RJ MENU</span>
+          <div class="menu-tools">
+            <div class="locale-switch" aria-label="Language">
+              <button id="locale-zh" class="locale-button" type="button" aria-label="切换为中文">中</button>
+              <button id="locale-en" class="locale-button" type="button" aria-label="Switch to English">EN</button>
+            </div>
+            <button id="close-menu" class="menu-close" aria-label="Close menu">×</button>
+          </div>
+        </div>
         <div class="menu-section-label" data-i18n="actions">Actions</div>
         <div class="action-grid">
           <button data-state="waiting" data-i18n="working">Working</button>
@@ -36,8 +45,6 @@
           <label class="toggle"><input id="bubble-toggle" type="checkbox" checked /> <span data-i18n="showBubble">Show bubble</span></label>
           <label class="toggle"><input id="autostart-toggle" type="checkbox" /> <span data-i18n="launchAtLogin">Launch at login</span></label>
           <button id="hide-pet" data-i18n="hide">Hide RJ</button>
-          <button id="locale-zh" class="locale-button" type="button">中文</button>
-          <button id="locale-en" class="locale-button" type="button">English</button>
           <button id="quit-pet" class="danger" data-i18n="quit">Quit RJ</button>
         </div>
       </section>
